@@ -22,13 +22,10 @@ class Ipfsd(Thread):
         # TODO(pkobielak): manual selection or automatic resolving of platform?
         self.platform = cfg.PLATFORM_WIN64
 
-        # TODO(pkobielak): here should be some checking if already installed
         if self._is_installed():
-            self.installed = True
             self.exe = self._get_default_exe_path()
             LOG.info('IPFS daemon is already installed')
         else:
-            self.installed = False
             self.exe = self._download_and_extract()
 
     def _is_installed(self):
@@ -36,6 +33,7 @@ class Ipfsd(Thread):
         return os.path.isdir(os.path.join(self.current_dir, 'tmp', 'go-ipfs'))
 
     def _get_default_exe_path(self):
+        # TODO(pkobielak): 'ipfs.exe' should be variable and platform specific
         return os.path.join(self.current_dir, 'tmp', 'go-ipfs', 'ipfs.exe')
 
     def _download_and_extract(self):
@@ -57,6 +55,9 @@ class Ipfsd(Thread):
 
             zf = ZipFile(io.BytesIO(pkg))
             zf.extractall(workdir)
+        else:
+            LOG.fatal('Platform not supported!')
+
         LOG.info('Downloaded and extracted ipfs daemon %s', cfg.VERSION)
         return os.path.join(workdir, 'go-ipfs', 'ipfs.exe')
 

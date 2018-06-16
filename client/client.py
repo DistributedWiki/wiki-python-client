@@ -1,6 +1,6 @@
 import logging
 from web3 import Web3
-from web3 import TestRPCProvider
+from web3 import HTTPProvider
 import ipfsapi
 import time
 
@@ -20,9 +20,9 @@ class DWClient:
             except ipfsapi.exceptions.ConnectionError:
                 LOG.debug('Waiting for ipfsd to get up...')
                 time.sleep(1)
-        # TODO(pkobielak): Testrpc should be changed for real one
-        self.web3 = Web3(TestRPCProvider())
-
+        # TODO(pkobielak): TestRPCProvider need workaround to work on Win10
+        # TODO(pkobielak): ganache used instead of TestRPCProvider
+        self.web3 = Web3(HTTPProvider('http://localhost:8545'))
 
     def add_article(self, article_filepath):
         LOG.debug('Adding article sequence started')
@@ -30,7 +30,5 @@ class DWClient:
         article_ipfs = self.ipfs_api.add(article_filepath)
         ipfs_address = article_ipfs['Hash']
 
-
-
         LOG.info('Article added: contract_address=%s ipfs_address=%s',
-                  '', ipfs_address)
+                 '', ipfs_address)
