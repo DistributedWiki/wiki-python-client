@@ -15,9 +15,8 @@ class BlockchainDB:
         self.private_key = private_key # TODO - this is not safe
         self.top_level_contract = self.w3.eth.contract(address=top_level_address, abi=top_level_abi.abi)
 
-    @staticmethod
-    def _hash(data_str):
-        return '0x' + hashlib.sha3_256(data_str.encode('utf-8')).hexdigest()
+    def _hash(self, data_str):
+        return self.w3.sha3(text=data_str).hex()
 
     def _get_article_contract(self, title):
         title_hash_bytes32 = self.w3.toBytes(hexstr=self._hash(title))
