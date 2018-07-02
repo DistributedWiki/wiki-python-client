@@ -1,3 +1,0 @@
-ARTICLE_CONTRACT = '''
-
-'''

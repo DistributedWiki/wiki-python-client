@@ -1,8 +1,9 @@
 from web3 import Web3, HTTPProvider
+
 import blockchain.article_abi as article_abi
-import blockchain.top_level_abi as top_level_abi
-import hashlib
 import blockchain.contracts_conf as cfg
+import blockchain.top_level_abi as top_level_abi
+
 
 class BlockchainDB:
     def __init__(self,

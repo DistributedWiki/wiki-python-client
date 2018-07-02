@@ -1,10 +1,12 @@
 import logging
 import os
-import ipfsapi
 import time
+
 import base58
+import ipfsapi
+
 from blockchain.blockchain_db import BlockchainDB
-from common.utils import file_hash
+import common.utils as utils
 
 LOG = logging.getLogger('client')
 
@@ -41,8 +43,26 @@ class DWClient:
         ipfs_address = article_ipfs['Hash']
 
         try:
-            self.db.add_article_tx(title, self._strip_ipfs_address(ipfs_address))
-            LOG.info('Article added: title=%s, ipfs_address=%s', title, ipfs_address)
+            self.db.add_article_tx(
+                title, self._strip_ipfs_address(ipfs_address)
+            )
+            LOG.info('Article added: title=%s, ipfs_address=%s',
+                     title, ipfs_address)
+        except Exception as e:
+            print(e)
+
+    def update_article(self, title, article_filepath):
+        LOG.debug('Updating article contract...')
+
+        new_article_version_ipfs = self.ipfs_api.add(article_filepath)
+        ipfs_address = new_article_version_ipfs['Hash']
+
+        try:
+            self.db.update_tx(
+                title, self._strip_ipfs_address(ipfs_address)
+            )
+            LOG.info('Article updated: title=%s, ipfs_address=%s',
+                     title, ipfs_address)
         except Exception as e:
             print(e)
 
@@ -55,7 +75,8 @@ class DWClient:
 
         # Todo - this can be checked before downloading ???
         # Check if local file exists and is up-to-date
-        if os.path.exists(title) and file_hash(article_id) != file_hash(title):
+        if (os.path.exists(title)
+                and utils.file_hash(article_id) != utils.file_hash(title)):
             os.remove(title)
             os.rename(article_id, title)
         elif not os.path.exists(title):
@@ -63,4 +84,12 @@ class DWClient:
         else:
             os.remove(article_id)
 
+    def get_article_history(self, title):
+        LOG.debug('Retrieving article version history...')
+        history_length = self.db.get_number_of_modifications(title)
+        article_version_history = []
+        for version_index in range(history_length):
+            version_info = self.db.get_modification_info(title, version_index)
+            article_version_history.append(version_info)
 
+        return article_version_history
