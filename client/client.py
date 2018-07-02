@@ -1,9 +1,11 @@
 import hashlib
 import logging
 import os
-import ipfsapi
 import time
+
 import base58
+import ipfsapi
+
 from blockchain.blockchain_db import BlockchainDB
 
 LOG = logging.getLogger('client')

@@ -1,14 +1,13 @@
 import logging
+import os
+import subprocess
 import sys
-import subprocess, os
-import webbrowser
 
 from PyQt5.Qt import QSize
-from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QLabel
 from PyQt5.QtWidgets import QPushButton
-from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QTextEdit
+from PyQt5.QtWidgets import QWidget
 
 import client.gui_conf as gc
 from client.client import DWClient
@@ -53,18 +52,28 @@ class GUI(QWidget):
         os.chdir(get_prefix_path())
 
     def _constructUI(self):
+        status_title = QLabel("FullNode:", self)
+        status_title.move(50, 25)
+
+        status_variable = QLabel("active", self)
+        status_variable.setStyleSheet("QLabel {color: green;}")
+        status_variable.move(100, 25)
+
+        self.title_edit = QTextEdit(
+            self,
+            placeholderText='Put unique article title here'
+        )
+        self.title_edit.resize(QSize(250, 25))
+        self.title_edit.move(50, 50)
+
         btn_add_article = QPushButton('Add article', self)
         btn_add_article.resize(btn_add_article.sizeHint())
-        btn_add_article.move(50, 50)
+        btn_add_article.move(50, 100)
         btn_add_article.clicked.connect(self._add_article_action)
-
-        self.title_edit = QTextEdit('title', self)
-        self.title_edit.resize(QSize(100, 30))
-        self.title_edit.move(50, 0)
 
         btn_search_article = QPushButton('Search article', self)
         btn_search_article.resize(btn_search_article.sizeHint())
-        btn_search_article.move(200, 50)
+        btn_search_article.move(225, 100)
         btn_search_article.clicked.connect(self._search_article_action)
 
     def _open_file(self, filename):
