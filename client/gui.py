@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import QTextEdit
 from PyQt5.QtWidgets import QWidget
 
 import client.gui_conf as gc
+import utils
 from client.client import DWClient
 
 LOG = logging.getLogger('gui')
@@ -107,3 +108,8 @@ class GUI(QWidget):
     def start(self, app):
         self.show()
         sys.exit(app.exec_())
+
+    def closeEvent(self, QCloseEvent):
+        utils.kill_ipfsd_processes()
+        # Delete GUI session
+        self.deleteLater()
