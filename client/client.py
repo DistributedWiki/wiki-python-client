@@ -4,6 +4,7 @@ import ipfsapi
 import time
 import base58
 from blockchain.blockchain_db import BlockchainDB
+from common.utils import file_hash
 
 LOG = logging.getLogger('client')
 
@@ -25,23 +26,41 @@ class DWClient:
 
     # we remove 2 most significant bytes (they are always 1220)
     # when reading from smart contract, this 2 bytes must be appended back to ipfs address
-    def _strip_ipfs_address(self, address):
+    @staticmethod
+    def _strip_ipfs_address(address):
         return base58.b58decode(address)[2:]
 
-    def _restore_ipfs_address(self, address):
+    @staticmethod
+    def _restore_ipfs_address(address):
         return base58.b58encode(b'\x12\x20' + address).decode()
 
-    def add_article(self, article_filepath):
+    def add_article(self, title, article_filepath):
         LOG.debug('Adding article sequence started')
 
-        # TODO - we should not add exisitng files, instead, provide editor and create files ourselves
         article_ipfs = self.ipfs_api.add(article_filepath)
         ipfs_address = article_ipfs['Hash']
-
-        title = os.path.basename(article_filepath)
 
         try:
             self.db.add_article_tx(title, self._strip_ipfs_address(ipfs_address))
             LOG.info('Article added: title=%s, ipfs_address=%s', title, ipfs_address)
         except Exception as e:
             print(e)
+
+    def get_article(self, title):
+        LOG.debug('Get article')
+
+        article_id = self.db.get_article_ID(title)
+        article_id = self._restore_ipfs_address(article_id)
+        self.ipfs_api.get(article_id)
+
+        # Todo - this can be checked before downloading ???
+        # Check if local file exists and is up-to-date
+        if os.path.exists(title) and file_hash(article_id) != file_hash(title):
+            os.remove(title)
+            os.rename(article_id, title)
+        elif not os.path.exists(title):
+            os.rename(article_id, title)
+        else:
+            os.remove(article_id)
+
+
