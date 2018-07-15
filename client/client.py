@@ -7,6 +7,7 @@ import base58
 import ipfsapi
 
 from blockchain.blockchain_db import BlockchainDB
+from common.utils import file_hash
 
 LOG = logging.getLogger('client')
 
@@ -36,10 +37,12 @@ class DWClient:
 
     # we remove 2 most significant bytes (they are always 1220)
     # when reading from smart contract, this 2 bytes must be appended back to ipfs address
-    def _strip_ipfs_address(self, address):
+    @staticmethod
+    def _strip_ipfs_address(address):
         return base58.b58decode(address)[2:]
 
-    def _restore_ipfs_address(self, address):
+    @staticmethod
+    def _restore_ipfs_address(address):
         return base58.b58encode(b'\x12\x20' + address).decode()
 
     def add_article(self, title, article_filepath):
