@@ -49,8 +49,26 @@ class DWClient:
         ipfs_address = article_ipfs['Hash']
 
         try:
-            self.db.add_article_tx(title, self._strip_ipfs_address(ipfs_address))
-            LOG.info('Article added: title=%s, ipfs_address=%s', title, ipfs_address)
+            self.db.add_article_tx(
+                title, self._strip_ipfs_address(ipfs_address)
+            )
+            LOG.info('Article added: title=%s, ipfs_address=%s',
+                     title, ipfs_address)
+        except Exception as e:
+            print(e)
+
+    def update_article(self, title, article_filepath):
+        LOG.debug('Updating article contract...')
+
+        new_article_version_ipfs = self.ipfs_api.add(article_filepath)
+        ipfs_address = new_article_version_ipfs['Hash']
+
+        try:
+            self.db.update_tx(
+                title, self._strip_ipfs_address(ipfs_address)
+            )
+            LOG.info('Article updated: title=%s, ipfs_address=%s',
+                     title, ipfs_address)
         except Exception as e:
             print(e)
 
@@ -71,4 +89,12 @@ class DWClient:
         else:
             os.remove(article_id)
 
+    def get_article_history(self, title):
+        LOG.debug('Retrieving article version history...')
+        history_length = self.db.get_number_of_modifications(title)
+        article_version_history = []
+        for version_index in range(history_length):
+            version_info = self.db.get_modification_info(title, version_index)
+            article_version_history.append(version_info)
 
+        return article_version_history
