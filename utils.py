@@ -21,4 +21,4 @@ def remove_local_ipfs_lock():
     try:
         os.remove(lock_path)
     except FileNotFoundError:
-        LOG.debug('Ipfsd lock not exists - OK')
+        LOG.debug('Ipfsd lock doesn\'t exists - OK')
