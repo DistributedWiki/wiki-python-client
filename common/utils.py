@@ -34,6 +34,11 @@ def get_prefix_path():
     return path
 
 
+def run_with_timeout(pool, timeout, fn, *args, **kwargs):
+    f = pool.submit(fn, *args, **kwargs)
+    return f.result(timeout=timeout)
+
+
 def kill_ipfsd_processes():
     for proc in psutil.process_iter(attrs=['name']):
         if 'ipfs.exe' == proc.info['name']:
