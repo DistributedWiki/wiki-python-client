@@ -8,6 +8,7 @@ from zipfile import ZipFile
 import requests
 
 import ipfs_server.ipfsd_conf as cfg
+import common.utils as utils
 
 LOG = logging.getLogger('ipfsd')
 
@@ -27,6 +28,10 @@ class Ipfsd(Thread):
             LOG.info('IPFS daemon is already installed')
         else:
             self.exe = self._download_and_extract()
+
+        LOG.info('Cleaning all running ipfs daemons...')
+        utils.kill_ipfsd_processes()
+        utils.remove_local_ipfs_lock()
 
     def _is_installed(self):
         self.current_dir = os.path.dirname(os.path.abspath(__file__))
