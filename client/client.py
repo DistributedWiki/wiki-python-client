@@ -25,6 +25,7 @@ class DWClient:
                 LOG.debug('Waiting for ipfsd to get up...')
                 time.sleep(1)
         self.db = BlockchainDB()
+        self.titles = []
 
     # we remove 2 most significant bytes (they are always 1220)
     # when reading from smart contract, this 2 bytes must be appended back to ipfs address
@@ -83,6 +84,14 @@ class DWClient:
             os.rename(article_id, title)
         else:
             os.remove(article_id)
+
+    def get_titles(self):
+        titles_to_fetch = self.db.get_number_of_titles() - len(self.titles)
+        while titles_to_fetch > 0:
+            self.titles.append(self.db.get_title(len(self.titles)))
+            titles_to_fetch -= 1
+
+        return self.titles
 
     def get_article_history(self, title):
         LOG.debug('Retrieving article version history...')
