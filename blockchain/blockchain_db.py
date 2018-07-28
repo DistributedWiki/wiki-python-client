@@ -16,11 +16,8 @@ class BlockchainDB:
         self.private_key = private_key # TODO - this is not safe
         self.top_level_contract = self.w3.eth.contract(address=top_level_address, abi=top_level_abi.abi)
 
-    def _hash(self, data_str):
-        return self.w3.sha3(text=data_str).hex()
-
     def _get_article_contract(self, title):
-        title_hash_bytes32 = self.w3.toBytes(hexstr=self._hash(title))
+        title_hash_bytes32 = self.w3.toBytes(text=title)
 
         return self.w3.eth.contract(
             address=self.top_level_contract.functions.getArticle(title_hash_bytes32).call(),
@@ -38,7 +35,7 @@ class BlockchainDB:
         :param title: string
         :param ID: bytes
         """
-        title_hash_bytes32 = self.w3.toBytes(hexstr=self._hash(title))
+        title_hash_bytes32 = self.w3.toBytes(text=title)
 
         # TODO - parametrize gas
         tx_dict = {'nonce': self.w3.eth.getTransactionCount(self.address), 'gas': 1400000}
@@ -76,6 +73,12 @@ class BlockchainDB:
 
     def get_number_of_modifications(self, title):
         return self._get_article_contract(title).functions.nModifications().call()
+
+    def get_number_of_titles(self):
+        return self.top_level_contract.functions.nTitles().call()
+
+    def get_title(self, index):
+        return self.w3.toText(self.top_level_contract.functions.titlesList(index).call())
 
     def get_modification_info(self, title, index):
         if index >= self.get_number_of_modifications(title) or index < 0:

@@ -14,7 +14,9 @@ class DWClient:
     """
     def __init__(self):
         self.db = BlockchainDB()
+
         self.ipfs = IPFSClient()
+        self.titles = []
 
     def add_article(self, title, article_filepath):
         LOG.debug('Adding article sequence started')
@@ -54,6 +56,14 @@ class DWClient:
             os.rename(full_id, title)
         else:
             os.remove(full_id)
+
+    def get_titles(self):
+        titles_to_fetch = self.db.get_number_of_titles() - len(self.titles)
+        while titles_to_fetch > 0:
+            self.titles.append(self.db.get_title(len(self.titles)))
+            titles_to_fetch -= 1
+
+        return self.titles
 
     def get_article_history(self, title):
         LOG.debug('Retrieving article version history...')
