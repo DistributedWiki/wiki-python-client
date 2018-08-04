@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import QListWidget
 import client.gui_conf as gc
 import common.utils as utils
 from client.client import DWClient
+from client.login import Login
 
 LOG = logging.getLogger('gui')
 
@@ -31,7 +32,7 @@ class GUI(QWidget):
         self.setWindowTitle(gc.WINDOW_TITLE)
 
         self._constructUI()
-        self.client = DWClient()
+        self.client = None
 
         os.chdir(utils.get_prefix_path())
 
@@ -153,7 +154,13 @@ class GUI(QWidget):
         )
         self._open_file(title)
 
+    def init_client(self, eth_private_key, eth_provider):
+        self.client = DWClient(eth_private_key, eth_provider)
+
     def start(self, app):
+        login_window = Login(self.init_client)
+        login_window.exec()
+
         self.show()
         sys.exit(app.exec_())
 

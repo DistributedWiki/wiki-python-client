@@ -15,7 +15,7 @@ class DWClient:
     """
     Distributed Wikipedia Client
     """
-    def __init__(self):
+    def __init__(self, eth_private_key, eth_provider):
         while True:
             try:
                 self.ipfs_api = ipfsapi.connect('127.0.0.1', 5001)
@@ -24,7 +24,7 @@ class DWClient:
             except ipfsapi.exceptions.ConnectionError:
                 LOG.debug('Waiting for ipfsd to get up...')
                 time.sleep(1)
-        self.db = BlockchainDB()
+        self.db = BlockchainDB(eth_private_key, eth_provider)
 
     # we remove 2 most significant bytes (they are always 1220)
     # when reading from smart contract, this 2 bytes must be appended back to ipfs address
@@ -41,6 +41,9 @@ class DWClient:
 
         article_ipfs = self.ipfs_api.add(article_filepath)
         ipfs_address = article_ipfs['Hash']
+
+        if self.db.article_exists(title):
+            raise Exception("Article exists")
 
         try:
             self.db.add_article_tx(
