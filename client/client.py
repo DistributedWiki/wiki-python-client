@@ -12,14 +12,17 @@ class DWClient:
     """
     Distributed Wikipedia Client
     """
-    def __init__(self):
-        self.db = BlockchainDB()
+    def __init__(self, eth_private_key, eth_provider):
+        self.db = BlockchainDB(eth_private_key, eth_provider)
 
         self.ipfs = IPFSClient()
         self.titles = []
 
     def add_article(self, title, article_filepath):
         LOG.debug('Adding article sequence started')
+
+        if self.db.article_exists(title):
+            raise Exception("Article exists")
 
         try:
             ipfs_address = self.ipfs.add_article(article_filepath)
