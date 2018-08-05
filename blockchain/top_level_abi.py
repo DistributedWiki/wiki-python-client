@@ -3,7 +3,7 @@ abi = """[
 		"constant": false,
 		"inputs": [
 			{
-				"name": "titleHash",
+				"name": "title",
 				"type": "bytes32"
 			},
 			{
@@ -27,7 +27,7 @@ abi = """[
 		"constant": true,
 		"inputs": [
 			{
-				"name": "titleHash",
+				"name": "title",
 				"type": "bytes32"
 			}
 		],
@@ -36,6 +36,39 @@ abi = """[
 			{
 				"name": "",
 				"type": "address"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "nTitles",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "titlesList",
+		"outputs": [
+			{
+				"name": "",
+				"type": "bytes32"
 			}
 		],
 		"payable": false,

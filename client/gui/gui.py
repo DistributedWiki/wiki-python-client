@@ -2,14 +2,14 @@ import logging
 import os
 import subprocess
 import sys
-from concurrent.futures import ProcessPoolExecutor
-from time import sleep
 
 from PyQt5.Qt import QSize
+from PyQt5.QtCore import QStringListModel
 from PyQt5.QtWidgets import QLabel
 from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QLineEdit
+from PyQt5.QtWidgets import QCompleter
 from PyQt5.QtWidgets import QPushButton
-from PyQt5.QtWidgets import QTextEdit
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QListWidget
 
@@ -33,10 +33,19 @@ class GUI(QWidget):
         )
         self.setWindowTitle(gc.WINDOW_TITLE)
 
-        self._constructUI()
         self.client = DWClient()
+        self._constructUI()
+        self.worker = None
 
         os.chdir(utils.get_prefix_path())
+
+    def update_titles(self, _):
+        self.worker = Worker(lambda:
+                             self.titles_list_model.setStringList(
+                                 self.client.get_titles()))
+        self.worker.signal_finished.connect(lambda: None)
+        self.worker.signal_error.connect(lambda: None)
+        self.worker.start()
 
     def _constructUI(self):
         status_title = QLabel("FullNode:", self)
@@ -46,10 +55,18 @@ class GUI(QWidget):
         status_variable.setStyleSheet("QLabel {color: green;}")
         status_variable.move(100, 25)
 
-        self.title_edit = QTextEdit(
+        self.title_edit = QLineEdit(
             self,
             placeholderText='Put unique article title here'
         )
+
+        self.titles_list_model = QStringListModel()
+        self.title_edit.textChanged.connect(self.update_titles)
+
+        completer = QCompleter()
+        completer.setModel(self.titles_list_model)
+        self.title_edit.setCompleter(completer)
+
         self.title_edit.resize(QSize(250, 25))
         self.title_edit.move(50, 50)
 
@@ -98,14 +115,13 @@ class GUI(QWidget):
 
     def _update_article_action(self):
         LOG.info('_update_article_action called')
-        title = self.title_edit.toPlainText()
+        title = self.title_edit.text()
         path = self._open_file(title)
 
         self.worker = Worker(self.client.update_article, title, path)
         self.worker.signal_finished.connect(lambda: self._update_article_action_success(title))
         self.worker.signal_error.connect(self._client_action_failed)
         self.worker.start()
-
 
     def _open_file(self, filename):
         """
@@ -144,7 +160,7 @@ class GUI(QWidget):
 
     def _add_article_action(self):
         LOG.debug('_add_article_action called')
-        title = self.title_edit.toPlainText()
+        title = self.title_edit.text()
         path = self._open_file(title)
 
         self.worker = Worker(self.client.add_article, title, path)
@@ -175,7 +191,7 @@ class GUI(QWidget):
 
     def _search_article_action(self):
         LOG.debug('_search_article_action called')
-        title = self.title_edit.toPlainText()
+        title = self.title_edit.text()
 
         self.worker = Worker(self.client.get_article, title)
         self.worker.signal_finished.connect(lambda: self._search_article_action_success(title))
