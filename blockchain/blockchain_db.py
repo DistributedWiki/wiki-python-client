@@ -7,22 +7,25 @@ import blockchain.top_level_abi as top_level_abi
 
 class BlockchainDB:
     def __init__(self,
-                 provider=HTTPProvider(cfg.infura_endpoint),
-                 address=cfg.account_address,
-                 private_key=cfg.private_key,
+                 private_key,
+                 provider,
                  top_level_address=cfg.top_level_address):
-        self.w3 = Web3(provider)
-        self.address = address
-        self.private_key = private_key # TODO - this is not safe
+        self.w3 = Web3(HTTPProvider(provider))
+        self.account = self.w3.eth.account.privateKeyToAccount(private_key)
         self.top_level_contract = self.w3.eth.contract(address=top_level_address, abi=top_level_abi.abi)
 
     def _get_article_contract(self, title):
-        title_hash_bytes32 = self.w3.toBytes(text=title)
-
         return self.w3.eth.contract(
-            address=self.top_level_contract.functions.getArticle(title_hash_bytes32).call(),
+            address=self.top_level_contract.functions.getArticle(
+                self._encode_title(title)).call(),
             abi=article_abi.abi
         )
+
+    def article_exists(self, title):
+        return int(self.top_level_contract\
+                   .functions\
+                   .getArticle(self._encode_title(title))\
+                   .call(), 0) != 0
 
     def get_article_ID(self, title):
         """
@@ -35,16 +38,15 @@ class BlockchainDB:
         :param title: string
         :param ID: bytes
         """
-        title_hash_bytes32 = self.w3.toBytes(text=title)
 
         # TODO - parametrize gas
-        tx_dict = {'nonce': self.w3.eth.getTransactionCount(self.address), 'gas': 1400000}
+        tx_dict = {'nonce': self.w3.eth.getTransactionCount(self.account.address), 'gas': 1400000}
         tx = self.top_level_contract.functions.createArticle(
-            title_hash_bytes32,
+            self._encode_title(title),
             ID
         ).buildTransaction(tx_dict)
 
-        signed_tx = self.w3.eth.account.signTransaction(tx, private_key=self.private_key)
+        signed_tx = self.account.signTransaction(tx)
         tx_hash = self.w3.eth.sendRawTransaction(signed_tx.rawTransaction)
 
         # TODO: async?
@@ -60,10 +62,10 @@ class BlockchainDB:
         article_contract = self._get_article_contract(title)
 
         # TODO - parametrize gas
-        tx_dict = {'nonce': self.w3.eth.getTransactionCount(self.address), 'gas': 140000}
+        tx_dict = {'nonce': self.w3.eth.getTransactionCount(self.account.address), 'gas': 140000}
         tx = article_contract.functions.update(newID).buildTransaction(tx_dict)
 
-        signed_tx = self.w3.eth.account.signTransaction(tx, private_key=self.private_key)
+        signed_tx = self.account.signTransaction(tx)
         tx_hash = self.w3.eth.sendRawTransaction(signed_tx.rawTransaction)
 
         # TODO: async?
@@ -84,10 +86,19 @@ class BlockchainDB:
         if index >= self.get_number_of_modifications(title) or index < 0:
             raise IndexError
 
-        ID_bytes32, address, timestamp = self._get_article_contract(title).functions.commits(index).call()
+        ID_bytes32, address, timestamp = self._get_article_contract(title)\
+            .functions.commits(index).call()
 
         return {
             'ID': self.w3.toHex(ID_bytes32),
             'address': address,
             'timestamp': timestamp
         }
+
+    def _encode_title(self, title):
+        title_bytes = self.w3.toBytes(text=title)
+
+        if len(title_bytes) > 32:
+            raise Exception("Too long title (max size = 32 bytes after UTF-8 encoding)")
+
+        return title_bytes

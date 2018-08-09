@@ -17,6 +17,7 @@ import client.gui.gui_conf as gc
 import common.utils as utils
 from client.client import DWClient
 from client.gui.Worker import Worker
+from client.login import Login
 
 LOG = logging.getLogger('gui')
 
@@ -33,7 +34,7 @@ class GUI(QWidget):
         )
         self.setWindowTitle(gc.WINDOW_TITLE)
 
-        self.client = DWClient()
+        self.client = None
         self._constructUI()
         self.worker = None
 
@@ -198,7 +199,13 @@ class GUI(QWidget):
         self.worker.signal_error.connect(self._client_action_failed)
         self.worker.start()
 
+    def init_client(self, eth_private_key, eth_provider):
+        self.client = DWClient(eth_private_key, eth_provider)
+
     def start(self, app):
+        login_window = Login(self.init_client)
+        login_window.exec()
+
         self.show()
         sys.exit(app.exec_())
 
