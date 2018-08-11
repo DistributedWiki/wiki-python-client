@@ -7,8 +7,8 @@ from zipfile import ZipFile
 
 import requests
 
-import ipfs_server.ipfsd_conf as cfg
 import common.utils as utils
+import ipfs_server.ipfsd_conf as cfg
 
 LOG = logging.getLogger('ipfsd')
 

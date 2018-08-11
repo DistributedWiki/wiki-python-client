@@ -5,19 +5,21 @@ import sys
 
 from PyQt5.Qt import QSize
 from PyQt5.QtCore import QStringListModel
-from PyQt5.QtWidgets import QLabel
-from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtWidgets import QLineEdit
 from PyQt5.QtWidgets import QCompleter
+from PyQt5.QtWidgets import QLabel
+from PyQt5.QtWidgets import QLineEdit
+from PyQt5.QtWidgets import QListWidget
+from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QPlainTextEdit
 from PyQt5.QtWidgets import QPushButton
 from PyQt5.QtWidgets import QWidget
-from PyQt5.QtWidgets import QListWidget
 
 import client.gui.gui_conf as gc
 import common.utils as utils
 from client.client import DWClient
-from client.gui.Worker import Worker
+from client.gui.worker import Worker
 from client.login import Login
+from common.article_version_history import ArticleVersionHistory
 
 LOG = logging.getLogger('gui')
 
@@ -37,6 +39,7 @@ class GUI(QWidget):
         self.client = None
         self._constructUI()
         self.worker = None
+        self.article_version_history = None
 
         os.chdir(utils.get_prefix_path())
 
@@ -100,27 +103,43 @@ class GUI(QWidget):
             self._show_clicked_article_version
         )
 
-    def _show_clicked_article_version(self):
+        self.article_content_editor = QPlainTextEdit(self, readOnly=True)
+        self.article_content_editor.resize(QSize(350, 345))
+        self.article_content_editor.move(325, 25)
+
+    def _show_clicked_article_version(self, item):
         LOG.info('_show_clicked_article_version')
-        LOG.fatal('_show_clicked_article_version is not implemented')
+        LOG.info('clicked article version: %s', item.text())
+        article_version_id = int(item.text().split('::')[0])
+        article_content = self.article_version_history.get_version_by_index(
+            article_version_id
+        )
+        self.article_content_editor.clear()
+        self.article_content_editor.insertPlainText(article_content)
 
     def _client_action_failed(self, cause):
         self._show_warning_box(cause)
         self._set_current_article_title("<none>")
 
     def _update_article_action_success(self, title):
+        self.article_version_history.reload_article_history()
         self.version_history_list.clear()
         self.version_history_list.addItems(
-            self._make_versions_list(title)
+            self.article_version_history.get_versions_list()
         )
 
     def _update_article_action(self):
         LOG.info('_update_article_action called')
         title = self.title_edit.text()
+        if title is None:
+            LOG.error('Article title is not set. Please load article first.')
+            return
         path = self._open_file(title)
 
         self.worker = Worker(self.client.update_article, title, path)
-        self.worker.signal_finished.connect(lambda: self._update_article_action_success(title))
+        self.worker.signal_finished.connect(
+            lambda: self._update_article_action_success(title)
+        )
         self.worker.signal_error.connect(self._client_action_failed)
         self.worker.start()
 
@@ -153,10 +172,10 @@ class GUI(QWidget):
 
     def _add_article_action_success(self, title):
         self._set_current_article_title(title)
-
+        self.article_version_history = ArticleVersionHistory(title, self.client)
         self.version_history_list.clear()
         self.version_history_list.addItems(
-            self._make_versions_list(title)
+            self.article_version_history.get_versions_list()
         )
 
     def _add_article_action(self):
@@ -165,28 +184,18 @@ class GUI(QWidget):
         path = self._open_file(title)
 
         self.worker = Worker(self.client.add_article, title, path)
-        self.worker.signal_finished.connect(lambda: self._add_article_action_success(title))
+        self.worker.signal_finished.connect(
+            lambda: self._add_article_action_success(title)
+        )
         self.worker.signal_error.connect(self._client_action_failed)
         self.worker.start()
 
-    def _make_versions_list(self, title):
-        """
-        Makes list of strings for QListWidget.
-        :param title: title of the article
-        :return: list of strings
-        """
-        versions_data = self.client.get_article_history(title)
-        history_list = []
-        for version_dict in versions_data:
-            history_list.append("Time: {}".format(version_dict['timestamp']))
-        return history_list
-
     def _search_article_action_success(self, title):
         self._set_current_article_title(title)
-
+        self.article_version_history = ArticleVersionHistory(title, self.client)
         self.version_history_list.clear()
         self.version_history_list.addItems(
-            self._make_versions_list(title)
+            self.article_version_history.get_versions_list()
         )
         self._open_file(title)
 
@@ -195,7 +204,9 @@ class GUI(QWidget):
         title = self.title_edit.text()
 
         self.worker = Worker(self.client.get_article, title)
-        self.worker.signal_finished.connect(lambda: self._search_article_action_success(title))
+        self.worker.signal_finished.connect(
+            lambda: self._search_article_action_success(title)
+        )
         self.worker.signal_error.connect(self._client_action_failed)
         self.worker.start()
 
