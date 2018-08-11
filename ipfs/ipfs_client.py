@@ -3,9 +3,10 @@ import logging
 import time
 from concurrent.futures import ProcessPoolExecutor
 
-import common.utils as utils
 import base58
 import ipfsapi
+
+import common.utils as utils
 
 LOG = logging.getLogger('ipfs')
 

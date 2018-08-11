@@ -90,7 +90,7 @@ class BlockchainDB:
             .functions.commits(index).call()
 
         return {
-            'ID': self.w3.toHex(ID_bytes32),
+            'ID': ID_bytes32,
             'address': address,
             'timestamp': timestamp
         }
