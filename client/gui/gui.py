@@ -4,8 +4,6 @@ import subprocess
 import sys
 
 from PyQt5.Qt import QSize
-from PyQt5.QtCore import QStringListModel
-from PyQt5.QtWidgets import QCompleter
 from PyQt5.QtWidgets import QLabel
 from PyQt5.QtWidgets import QLineEdit
 from PyQt5.QtWidgets import QListWidget
@@ -17,6 +15,7 @@ from PyQt5.QtWidgets import QWidget
 import client.gui.gui_conf as gc
 import common.utils as utils
 from client.client import DWClient
+from client.client_conf import DEV_TOP_LEVEL_ADDRESS
 from client.gui.worker import Worker
 from client.login import Login
 
@@ -42,73 +41,84 @@ class GUI(QWidget):
 
         os.chdir(utils.get_prefix_path())
 
-    def update_titles(self, _):
-        self.worker = Worker(lambda:
-                             self.titles_list_model.setStringList(
-                                 self.client.get_titles()))
-        self.worker.signal_finished.connect(lambda: None)
-        self.worker.signal_error.connect(lambda: None)
-        self.worker.start()
+    def _show_articles_list(self, articles, prefix):
+        for article in articles:
+            if prefix in article:
+                self.articles_list.addItem(article)
+        self.articles_list.show()
 
     def _constructUI(self):
         status_title = QLabel("FullNode:", self)
-        status_title.move(50, 25)
+        status_title.move(50, 510)
 
         status_variable = QLabel("active", self)
         status_variable.setStyleSheet("QLabel {color: green;}")
-        status_variable.move(100, 25)
+        status_variable.move(100, 510)
+
+        self.top_level = QLabel(
+            "Current top level address: " + DEV_TOP_LEVEL_ADDRESS, self
+        )
+
+        self.top_level.resize(QSize(400, 25))
+        self.top_level.move(50, 20)
 
         self.title_edit = QLineEdit(
             self,
             placeholderText='Put unique article title here'
         )
 
-        self.titles_list_model = QStringListModel()
-        self.title_edit.textChanged.connect(self.update_titles)
-
-        completer = QCompleter()
-        completer.setModel(self.titles_list_model)
-        self.title_edit.setCompleter(completer)
-
         self.title_edit.resize(QSize(250, 25))
         self.title_edit.move(50, 50)
 
-        self.article_title_label = QLabel("Current article: <none>", self)
-        self.article_title_label.resize(QSize(250, 20))
-        self.article_title_label.move(50, 75)
+        self.btn_update_article = QPushButton('Update article', self)
+        self.btn_update_article.resize(QSize(90, 25))
+        self.btn_update_article.move(510, 50)
+        self.btn_update_article.clicked.connect(self._update_article_action)
 
-        btn_add_article = QPushButton('Add article', self)
-        btn_add_article.resize(btn_add_article.sizeHint())
-        btn_add_article.move(50, 100)
-        btn_add_article.clicked.connect(self._add_article_action)
-
-        btn_update_article = QPushButton('Update article', self)
-        btn_update_article.resize(btn_update_article.sizeHint())
-        btn_update_article.move(138, 100)
-        btn_update_article.clicked.connect(self._update_article_action)
+        # This button is active only when article is selected.
+        self.btn_update_article.setDisabled(True)
 
         btn_search_article = QPushButton('Search article', self)
-        btn_search_article.resize(btn_search_article.sizeHint())
-        btn_search_article.move(225, 100)
+        btn_search_article.resize(QSize(90, 25))
+        btn_search_article.move(310, 50)
         btn_search_article.clicked.connect(self._search_article_action)
 
+        btn_add_article = QPushButton('Add article', self)
+        btn_add_article.resize(QSize(90, 25))
+        btn_add_article.move(410, 50)
+        btn_add_article.clicked.connect(self._add_article_action)
+
         version_history_label = QLabel("Version history", self)
-        version_history_label.move(50, 150)
+        version_history_label.move(410, 100)
 
         self.version_history_list = QListWidget(self)
-        self.version_history_list.resize(QSize(250, 200))
-        self.version_history_list.move(50, 170)
+        self.version_history_list.resize(QSize(350, 100))
+        self.version_history_list.move(410, 120)
         self.version_history_list.itemClicked.connect(
             self._show_clicked_article_version
         )
 
+        content_editor_label = QLabel("Content viewer", self)
+        content_editor_label.move(410, 230)
+
         self.article_content_editor = QPlainTextEdit(self, readOnly=True)
-        self.article_content_editor.resize(QSize(350, 345))
-        self.article_content_editor.move(325, 25)
+        self.article_content_editor.resize(QSize(350, 250))
+        self.article_content_editor.move(410, 250)
+
+        articles_list_label = QLabel("Articles", self)
+        articles_list_label.move(50, 100)
+
+        self.articles_list = QListWidget(self)
+        self.articles_list.resize(QSize(350, 380))
+        self.articles_list.move(50, 120)
+
+        self.articles_list.show()
+        self.articles_list.itemClicked.connect(self._get_article_action)
 
     def _show_clicked_article_version(self, item):
         LOG.info('_show_clicked_article_version')
         LOG.info('clicked article version: %s', item.text())
+
         article_version_id = int(item.text().split('::')[0])
         article_content = self.client.get_version_by_index(
             article_version_id
@@ -118,7 +128,6 @@ class GUI(QWidget):
 
     def _client_action_failed(self, cause):
         self._show_warning_box(cause)
-        self._set_current_article_title("<none>")
 
     def _update_article_action_success(self, title):
         self.client.initialize_article_data(title)
@@ -159,9 +168,6 @@ class GUI(QWidget):
 
         return path
 
-    def _set_current_article_title(self, title):
-        self.article_title_label.setText("Current article: {}".format(title))
-
     def _show_warning_box(self, warning):
         box = QMessageBox()
         box.setIcon(QMessageBox.Warning)
@@ -170,7 +176,6 @@ class GUI(QWidget):
         box.exec()
 
     def _add_article_action_success(self, title):
-        self._set_current_article_title(title)
         self.client.initialize_article_data(title)
         self.version_history_list.clear()
         self.version_history_list.addItems(
@@ -189,28 +194,48 @@ class GUI(QWidget):
         self.worker.signal_error.connect(self._client_action_failed)
         self.worker.start()
 
-    def _search_article_action_success(self, title):
-        self._set_current_article_title(title)
+    def _get_article_action_success(self, title):
         self.client.initialize_article_data(title)
-        self.version_history_list.clear()
+
+        self.btn_update_article.setDisabled(False)
+
         self.version_history_list.addItems(
             self.client.get_versions_list()
         )
-        self._open_file(title)
 
-    def _search_article_action(self):
-        LOG.debug('_search_article_action called')
-        title = self.title_edit.text()
+    def _get_article_action(self, title):
+        title = title.text()
+        LOG.debug('_get_article_action called with title: {}'.format(title))
+
+        self.title_edit.setText(title)
+
+        self.article_content_editor.clear()
+        self.version_history_list.clear()
 
         self.worker = Worker(self.client.get_article, title)
         self.worker.signal_finished.connect(
-            lambda: self._search_article_action_success(title)
+            lambda: self._get_article_action_success(title)
         )
         self.worker.signal_error.connect(self._client_action_failed)
         self.worker.start()
 
-    def init_client(self, eth_private_key, eth_provider):
-        self.client = DWClient(eth_private_key, eth_provider)
+    def _search_article_action(self):
+        LOG.debug('_search_article_action called')
+
+        self.articles_list.clear() # TODO: Add status indicator
+        self.article_content_editor.clear()
+
+        title = self.title_edit.text()
+
+        self.worker = Worker(lambda:
+                             self._show_articles_list(
+                                 self.client.get_titles(), title))
+        self.worker.signal_finished.connect(lambda: None)
+        self.worker.signal_error.connect(lambda: None)
+        self.worker.start()
+
+    def init_client(self, eth_private_key, eth_provider, top_level_address):
+        self.client = DWClient(eth_private_key, eth_provider, top_level_address)
 
     def start(self, app):
         login_window = Login(self.init_client)

@@ -13,8 +13,8 @@ class DWClient:
     """
     Distributed Wikipedia Client
     """
-    def __init__(self, eth_private_key, eth_provider):
-        self.db = BlockchainDB(eth_private_key, eth_provider)
+    def __init__(self, eth_private_key, eth_provider, top_level_address):
+        self.db = BlockchainDB(eth_private_key, eth_provider, top_level_address)
 
         self.ipfs = IPFSClient()
         self.titles = []
