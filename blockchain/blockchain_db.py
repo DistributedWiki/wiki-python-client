@@ -1,7 +1,6 @@
 from web3 import Web3, HTTPProvider
 
 import blockchain.article_abi as article_abi
-import blockchain.contracts_conf as cfg
 import blockchain.top_level_abi as top_level_abi
 
 
@@ -9,7 +8,7 @@ class BlockchainDB:
     def __init__(self,
                  private_key,
                  provider,
-                 top_level_address=cfg.top_level_address):
+                 top_level_address):
         self.w3 = Web3(HTTPProvider(provider))
         self.account = self.w3.eth.account.privateKeyToAccount(private_key)
         self.top_level_contract = self.w3.eth.contract(address=top_level_address, abi=top_level_abi.abi)
