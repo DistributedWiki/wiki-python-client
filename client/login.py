@@ -1,7 +1,8 @@
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QLabel
+from PyQt5.QtWidgets import QLabel, QLineEdit
 
 import client.gui.gui_conf as gc
+from client.client_conf import DEV_INFURA, DEV_PRIVATE_KEY
 
 
 class Login(QtWidgets.QDialog):
@@ -16,11 +17,11 @@ class Login(QtWidgets.QDialog):
         self.private_key_label.move(5, 5)
 
         self.private_key = QtWidgets.QLineEdit(self)
-        #self.textPass.setEchoMode(QLineEdit.Password) TODO: should it be treated as password?
+        self.private_key.setEchoMode(QLineEdit.Password)
         self.private_key.move(self.private_key_label.size().width(), 0)
         self.private_key.resize(475, 23)
         self.private_key.setText(
-            "fa9bb03a928082551c83892a315850fe659dafd726aa61f40286ec09fac725a7"
+            DEV_PRIVATE_KEY
         )
 
         self.provider_label = QLabel("Enter provider", self)
@@ -29,7 +30,7 @@ class Login(QtWidgets.QDialog):
         self.provider = QtWidgets.QLineEdit(self)
         self.provider.resize(475, 23)
         self.provider.move(self.provider_label.size().width(), 25)
-        self.provider.setText("https://ropsten.infura.io/OQe96S6X8l5PM7NexvCM")
+        self.provider.setText(DEV_INFURA)
 
         self.buttonLogin = QtWidgets.QPushButton('Login', self)
         self.buttonLogin.clicked.connect(self.handle_login)
