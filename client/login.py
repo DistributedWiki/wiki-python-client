@@ -1,7 +1,8 @@
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QLineEdit, QLabel
+from PyQt5.QtWidgets import QLabel
 
 import client.gui.gui_conf as gc
+
 
 class Login(QtWidgets.QDialog):
     def __init__(self, callback):
