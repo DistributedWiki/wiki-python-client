@@ -40,5 +40,6 @@ class Login(QtWidgets.QDialog):
         self.buttonLogin.move(300 - self.buttonLogin.size().width() / 2, 60)
 
     def handle_login(self):
-        self.callback(self.private_key.text(), self.provider.text(), DEV_TOP_LEVEL_ADDRESS)
+        self.callback(self.private_key.text(), self.provider.text(),
+                      DEV_TOP_LEVEL_ADDRESS)
         self.accept()
