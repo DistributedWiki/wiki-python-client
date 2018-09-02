@@ -1,6 +1,7 @@
 import datetime
 import logging
 import os
+import sys
 
 import common.utils as utils
 from blockchain.blockchain_db import BlockchainDB
@@ -14,7 +15,7 @@ class DWClient:
     Distributed Wikipedia Client
     """
     def __init__(self, eth_private_key, eth_provider, top_level_address):
-        self.db = BlockchainDB(eth_private_key, eth_provider, top_level_address)
+        self.blockchain_db = BlockchainDB(eth_private_key, eth_provider, top_level_address)
 
         self.ipfs = IPFSClient()
         self.titles = []
@@ -22,35 +23,37 @@ class DWClient:
         self.current_article_title = None
         self.history = None
 
+    def get_unprocessed_tx(self, number=sys.maxsize):
+        return self.blockchain_db.get_tx_list(number)
+
+    def get_transaction_price(self):
+        return self.blockchain_db.estimate_add_article_tx()
+
     def initialize_article_data(self, title):
         self.current_article_title = title
         self.history = self._get_article_history(title)
         LOG.info('Article version history initialized for: %s', title)
 
+    def article_exists(self, title):
+        return self.blockchain_db.article_exists(title)
+
     def add_article(self, title, article_filepath):
         LOG.debug('Adding article sequence started')
 
-        if self.db.article_exists(title):
+        if self.blockchain_db.article_exists(title):
             raise Exception("Article exists")
 
-        try:
-            ipfs_address = self.ipfs.add_article(article_filepath)
-            self.db.add_article_tx(title, ipfs_address)
-            LOG.info('Article added to smart contract: title=%s, ipfs_address=%s',
-                     title, ipfs_address)
-        except Exception as e:
-            print(e)
+        ipfs_address = self.ipfs.add_article(article_filepath)
+        self.blockchain_db.add_article_tx(title, ipfs_address)
 
     def update_article(self, title, article_filepath):
         LOG.debug('Updating article contract...')
 
-        try:
-            ipfs_address = self.ipfs.add_article(article_filepath)
-            self.db.update_tx(title, ipfs_address)
-            LOG.info('Article updated: title=%s, ipfs_address=%s',
-                     title, ipfs_address)
-        except Exception as e:
-            print(e)
+        if not self.blockchain_db.article_exists(title):
+            raise Exception("Article doesn't exist")
+
+        ipfs_address = self.ipfs.add_article(article_filepath)
+        self.blockchain_db.update_article_tx(title, ipfs_address)
 
     def get_article(self, title, version_ipfs_address=None):
         LOG.debug('Get article')
@@ -58,7 +61,7 @@ class DWClient:
         if version_ipfs_address is not None:
             partial_ipfs_address = version_ipfs_address
         else:
-            partial_ipfs_address = self.db.get_article_ID(title)
+            partial_ipfs_address = self.blockchain_db.get_article_ID(title)
         full_ipfs_address = self.ipfs.get_article(partial_ipfs_address, 20)
 
         # Todo - this can be checked before downloading ???
@@ -80,30 +83,15 @@ class DWClient:
         return article_content
 
     def get_titles(self):
-        titles_to_fetch = self.db.get_number_of_titles() - len(self.titles)
+        titles_to_fetch = self.blockchain_db.get_number_of_titles() - len(self.titles)
         while titles_to_fetch > 0:
-            article_title_proposition = self.db.get_title(
+            article_title_proposition = self.blockchain_db.get_title(
                 len(self.titles)
             ).strip('\x00')
             self.titles.append(article_title_proposition)
             titles_to_fetch -= 1
 
         return self.titles
-
-    def _get_article_history(self, title):
-        """
-        Retrieves article data from blockchain.
-        :param title:
-        :return: list of article versions data
-        """
-        LOG.debug('Retrieving article version history...')
-        history_length = self.db.get_number_of_modifications(title)
-        article_version_history = []
-        for version_index in range(history_length):
-            version_info = self.db.get_modification_info(title, version_index)
-            article_version_history.append(version_info)
-
-        return article_version_history
 
     def get_versions_list(self):
         """
@@ -146,3 +134,18 @@ class DWClient:
         else:
             LOG.debug('content: too long to log, written only to preview')
         return content
+
+    def _get_article_history(self, title):
+        """
+        Retrieves article data from blockchain.
+        :param title:
+        :return: list of article versions data
+        """
+        LOG.debug('Retrieving article version history...')
+        history_length = self.blockchain_db.get_number_of_modifications(title)
+        article_version_history = []
+        for version_index in range(history_length):
+            version_info = self.blockchain_db.get_modification_info(title, version_index)
+            article_version_history.append(version_info)
+
+        return article_version_history
