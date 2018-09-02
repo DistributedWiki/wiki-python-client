@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import QListWidget
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtWidgets import QPlainTextEdit
 from PyQt5.QtWidgets import QPushButton
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QMainWindow
 
 import client.gui.gui_conf as gc
 import common.utils as utils
@@ -23,7 +23,7 @@ from client.login import Login
 LOG = logging.getLogger('gui')
 
 
-class GUI(QWidget):
+class GUI(QMainWindow):
     """
     GUI for Distributed Wikipedia Client
     """
@@ -43,11 +43,18 @@ class GUI(QWidget):
         os.chdir(utils.get_prefix_path())
 
     def update_titles(self, _):
+        self._set_app_status('Loading suggestions for title')
         self.worker = Worker(lambda:
                              self.titles_list_model.setStringList(
                                  self.client.get_titles()))
-        self.worker.signal_finished.connect(lambda: None)
-        self.worker.signal_error.connect(lambda: None)
+        self.worker.signal_finished.connect(lambda:
+                                            self._set_app_status(
+                                                'Suggestions loaded'
+                                            ))
+        self.worker.signal_error.connect(lambda:
+                                         self._set_app_status(
+                                             'Failed to load suggestions'
+                                         ))
         self.worker.start()
 
     def _constructUI(self):
@@ -106,19 +113,33 @@ class GUI(QWidget):
         self.article_content_editor.resize(QSize(350, 345))
         self.article_content_editor.move(325, 25)
 
+        self.statusBar().showMessage('Connected')
+
+    def _set_app_status(self, text):
+        self.statusBar().showMessage(
+            'Status: Connected | Last action: {}'.format(text)
+        )
+
     def _show_clicked_article_version(self, item):
         LOG.info('_show_clicked_article_version')
         LOG.info('clicked article version: %s', item.text())
+        self._set_app_status(
+            'Loading preview of article {}'.format(item.text())
+        )
         article_version_id = int(item.text().split('::')[0])
         article_content = self.client.get_version_by_index(
             article_version_id
         )
         self.article_content_editor.clear()
         self.article_content_editor.insertPlainText(article_content)
+        self._set_app_status(
+            'Loaded preview of article {}'.format(item.text())
+        )
 
     def _client_action_failed(self, cause):
         self._show_warning_box(cause)
         self._set_current_article_title("<none>")
+        self._set_app_status('Error occurred. Check logs...')
 
     def _update_article_action_success(self, title):
         self.client.initialize_article_data(title)
@@ -126,9 +147,11 @@ class GUI(QWidget):
         self.version_history_list.addItems(
             self.client.get_versions_list()
         )
+        self._set_app_status('Article updated successfully')
 
     def _update_article_action(self):
         LOG.info('_update_article_action called')
+        self._set_app_status('Updating article...')
         title = self.title_edit.text()
         if title is None:
             LOG.error('Article title is not set. Please load article first.')
@@ -147,6 +170,7 @@ class GUI(QWidget):
         Opens file with provided filename in default system editor.
         Creates file if it doesn't exists.
         """
+        self._set_app_status('Opening file...')
         path = os.path.join(utils.get_prefix_path(), filename)
         utils.create_file_if_not_exists(path)
 
@@ -156,7 +180,7 @@ class GUI(QWidget):
             subprocess.call(('notepad.exe', path))  # XXX: select editor...
         elif os.name == 'posix':
             subprocess.call(('xdg-open', path))
-
+        self._set_app_status('File closed')
         return path
 
     def _set_current_article_title(self, title):
@@ -176,9 +200,11 @@ class GUI(QWidget):
         self.version_history_list.addItems(
             self.client.get_versions_list()
         )
+        self._set_app_status('Article added successfully')
 
     def _add_article_action(self):
         LOG.debug('_add_article_action called')
+        self._set_app_status('Adding an article...')
         title = self.title_edit.text()
         path = self._open_file(title)
 
@@ -197,9 +223,11 @@ class GUI(QWidget):
             self.client.get_versions_list()
         )
         self._open_file(title)
+        self._set_app_status('Article found')
 
     def _search_article_action(self):
         LOG.debug('_search_article_action called')
+        self._set_app_status('Searching for an article...')
         title = self.title_edit.text()
 
         self.worker = Worker(self.client.get_article, title)
@@ -210,7 +238,9 @@ class GUI(QWidget):
         self.worker.start()
 
     def init_client(self, eth_private_key, eth_provider):
+        self._set_app_status('Initializing client...')
         self.client = DWClient(eth_private_key, eth_provider)
+        self._set_app_status('Client initialized')
 
     def start(self, app):
         login_window = Login(self.init_client)
@@ -220,6 +250,7 @@ class GUI(QWidget):
         sys.exit(app.exec_())
 
     def closeEvent(self, QCloseEvent):
+        self._set_app_status('Closing application...')
         utils.kill_ipfsd_processes()
         # Delete GUI session
         self.deleteLater()
