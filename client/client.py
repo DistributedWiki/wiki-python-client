@@ -8,6 +8,9 @@ from ipfs.ipfs_client import IPFSClient
 
 LOG = logging.getLogger('client')
 
+DUMMY_TITLE = "dummy title"
+DUMMY_ADDRESS = b'\xd57YkE\x9b\xdf\xf6\xdaY|$\xeb\xa7\xac\x8f\xa1\xc0&\xf4\xf0R[\xbb\xca@\xeeK\x1e\xa9\xa3B'
+
 
 class DWClient:
     """
@@ -21,11 +24,19 @@ class DWClient:
 
         self.current_article_title = None
         self.history = None
+        self.last_cost = 99999999999
 
     def initialize_article_data(self, title):
         self.current_article_title = title
         self.history = self._get_article_history(title)
         LOG.info('Article version history initialized for: %s', title)
+
+    def estimate_transaction_cost(self):
+        tx = self.db.get_add_article_tx(DUMMY_TITLE, DUMMY_ADDRESS)
+        return self.db.estimate_price_tx(tx)
+
+    def get_last_transaction_cost(self):
+        return self.last_cost
 
     def add_article(self, title, article_filepath):
         LOG.debug('Adding article sequence started')
@@ -33,24 +44,21 @@ class DWClient:
         if self.db.article_exists(title):
             raise Exception("Article exists")
 
-        try:
-            ipfs_address = self.ipfs.add_article(article_filepath)
-            self.db.add_article_tx(title, ipfs_address)
-            LOG.info('Article added to smart contract: title=%s, ipfs_address=%s',
-                     title, ipfs_address)
-        except Exception as e:
-            print(e)
+        ipfs_address = self.ipfs.add_article(article_filepath)
+        print(ipfs_address)
+        tx = self.db.get_add_article_tx(title, ipfs_address)
+        self.last_cost = self.db.execute_tx(tx)
+        LOG.info('Article added to smart contract: title=%s, ipfs_address=%s',
+                 title, ipfs_address)
 
     def update_article(self, title, article_filepath):
         LOG.debug('Updating article contract...')
 
-        try:
-            ipfs_address = self.ipfs.add_article(article_filepath)
-            self.db.update_tx(title, ipfs_address)
-            LOG.info('Article updated: title=%s, ipfs_address=%s',
-                     title, ipfs_address)
-        except Exception as e:
-            print(e)
+        ipfs_address = self.ipfs.add_article(article_filepath)
+        tx = self.db.get_update_article_tx(title, ipfs_address)
+        self.last_cost = self.db.execute_tx(tx)
+        LOG.info('Article updated: title=%s, ipfs_address=%s',
+                 title, ipfs_address)
 
     def get_article(self, title, version_ipfs_address=None):
         LOG.debug('Get article')
