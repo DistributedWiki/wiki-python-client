@@ -1,4 +1,7 @@
-from web3 import Web3, HTTPProvider
+from web3 import Web3
+from web3 import HTTPProvider
+from web3 import middleware
+from web3.gas_strategies.time_based import fast_gas_price_strategy
 
 import blockchain.article_abi as article_abi
 import blockchain.contracts_conf as cfg
@@ -13,6 +16,12 @@ class BlockchainDB:
         self.w3 = Web3(HTTPProvider(provider))
         self.account = self.w3.eth.account.privateKeyToAccount(private_key)
         self.top_level_contract = self.w3.eth.contract(address=top_level_address, abi=top_level_abi.abi)
+        self.w3.eth.setGasPriceStrategy(fast_gas_price_strategy)
+
+        # Enable caching
+        self.w3.middleware_stack.add(middleware.time_based_cache_middleware)
+        self.w3.middleware_stack.add(middleware.latest_block_based_cache_middleware)
+        self.w3.middleware_stack.add(middleware.simple_cache_middleware)
 
     def _get_article_contract(self, title):
         return self.w3.eth.contract(
@@ -33,45 +42,48 @@ class BlockchainDB:
         """
         return self._get_article_contract(title).functions.getArticleID().call()
 
-    def add_article_tx(self, title, ID):
+    def get_add_article_tx(self, title, ID):
         """
         :param title: string
         :param ID: bytes
         """
 
-        # TODO - parametrize gas
         tx_dict = {'nonce': self.w3.eth.getTransactionCount(self.account.address), 'gas': 1400000}
         tx = self.top_level_contract.functions.createArticle(
             self._encode_title(title),
             ID
         ).buildTransaction(tx_dict)
 
-        signed_tx = self.account.signTransaction(tx)
-        tx_hash = self.w3.eth.sendRawTransaction(signed_tx.rawTransaction)
+        return tx
 
-        # TODO: async?
-        receipt = self.w3.eth.waitForTransactionReceipt(tx_hash)
-        if int(receipt['status']) == 0:
-            raise Exception('transaction failed')
-
-    def update_tx(self, title, newID):
+    def get_update_article_tx(self, title, newID):
         """
         :param title: string
         :param newID: bytes
         """
         article_contract = self._get_article_contract(title)
 
-        # TODO - parametrize gas
-        tx_dict = {'nonce': self.w3.eth.getTransactionCount(self.account.address), 'gas': 140000}
+        tx_dict = {'nonce': self.w3.eth.getTransactionCount(self.account.address), 'gas': 1400000}
         tx = article_contract.functions.update(newID).buildTransaction(tx_dict)
 
+        return tx
+
+    def estimate_price_tx(self, tx):
+        return self.w3.eth.estimateGas(tx) * self.w3.eth.generateGasPrice()
+
+    def execute_tx(self, tx):
+        """
+        :param tx: transaction to be executed
+        :return: price of the gas used
+        """
         signed_tx = self.account.signTransaction(tx)
         tx_hash = self.w3.eth.sendRawTransaction(signed_tx.rawTransaction)
 
-        # TODO: async?
         receipt = self.w3.eth.waitForTransactionReceipt(tx_hash)
         if int(receipt['status']) == 0:
             raise Exception('transaction failed')
+
+        return int(receipt['gasUsed']) * self.w3.eth.generateGasPrice()
 
     def get_number_of_modifications(self, title):
         return self._get_article_contract(title).functions.nModifications().call()

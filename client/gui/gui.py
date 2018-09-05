@@ -31,7 +31,7 @@ class GUI(QWidget):
         super().__init__()
         self.resize(gc.FRAME_WIDTH, gc.FRAME_HEIGHT)
         self.move(
-            gc.FHD_W/2 - gc.FRAME_WIDTH/2, gc.FHD_H/2 - gc.FRAME_HEIGHT/2
+            gc.FHD_W / 2 - gc.FRAME_WIDTH / 2, gc.FHD_H / 2 - gc.FRAME_HEIGHT / 2
         )
         self.setWindowTitle(gc.WINDOW_TITLE)
 
@@ -50,6 +50,19 @@ class GUI(QWidget):
         self.worker.signal_error.connect(lambda: None)
         self.worker.start()
 
+    def _set_estimated_price(self, price):
+        text = "estimated tx price: " + str(price) + " wei"
+        self.estimated_tx_price.setText(text)
+
+    def _update_estimation_price(self):
+        self.worker = Worker(lambda: self.client.estimate_transaction_cost())
+        self.worker.signal_finished.connect(
+            lambda:
+            self._set_estimated_price(
+                self.client.estimate_transaction_cost())) # This call should be getting cached value.
+        self.worker.signal_error.connect(lambda: None)
+        self.worker.start()
+
     def _constructUI(self):
         status_title = QLabel("FullNode:", self)
         status_title.move(50, 25)
@@ -57,6 +70,11 @@ class GUI(QWidget):
         status_variable = QLabel("active", self)
         status_variable.setStyleSheet("QLabel {color: green;}")
         status_variable.move(100, 25)
+
+        self.estimated_tx_price = QLabel("estimated tx price: 99999999999 wei", self)
+        self.estimated_tx_price.move(135, 25)
+        self.estimated_tx_price.setToolTip("Click to refresh value")
+        self.estimated_tx_price.mousePressEvent = lambda _: self._update_estimation_price()
 
         self.title_edit = QLineEdit(
             self,
@@ -126,6 +144,7 @@ class GUI(QWidget):
         self.version_history_list.addItems(
             self.client.get_versions_list()
         )
+        self._set_estimated_price(self.client.get_last_transaction_cost())
 
     def _update_article_action(self):
         LOG.info('_update_article_action called')
@@ -176,6 +195,7 @@ class GUI(QWidget):
         self.version_history_list.addItems(
             self.client.get_versions_list()
         )
+        self._set_estimated_price(self.client.get_last_transaction_cost())
 
     def _add_article_action(self):
         LOG.debug('_add_article_action called')
