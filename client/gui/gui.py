@@ -72,9 +72,6 @@ class GUI(QMainWindow):
         self.estimated_tx_price = QLabel("estimated tx price: loading...", self)
         self.estimated_tx_price.adjustSize()
         self.estimated_tx_price.move(550, 505)
-        self.estimated_tx_price.setToolTip("Click to refresh value")
-        self.estimated_tx_price.mousePressEvent = \
-            lambda _: self._update_estimation_price()
 
         self.title_edit = QLineEdit(
             self,
@@ -145,13 +142,23 @@ class GUI(QMainWindow):
         self.action_status.setHorizontalHeaderLabels(['Action', 'Status'])
         self.action_status.setColumnWidth(0, 473)
         self.action_status.setColumnWidth(1, 220)
+        self.action_status.setRowCount(gc.NUMBER_OF_DISPLAYED_TRANSACTIONS)
 
         self.statusBar().showMessage('Connected')
 
     def _show_articles_list(self, articles, prefix):
+        count = 0
+        self.articles_list.setDisabled(False)
+
         for article in articles:
             if prefix in article:
                 self.articles_list.addItem(article)
+                count += 1
+
+        if count == 0:
+            self.articles_list.addItem("No articles found")
+            self.articles_list.setDisabled(True)
+
         self.articles_list.show()
 
     def _set_estimated_price(self, price):
@@ -226,9 +233,10 @@ class GUI(QMainWindow):
 
         title = self.title_edit.text()
 
-        if title is None:
-            LOG.error('Article title is not set. Please load article first.')
-            return
+        # update button should only be active when title is specified
+        assert(title is not None)
+        assert(title != "")
+
         path = self._open_file(title)
 
         self._set_app_status(
@@ -276,14 +284,8 @@ class GUI(QMainWindow):
             self.loading_box.close()
         self.loading_box = None
 
-    def _add_article_action(self):
-        LOG.debug('_add_article_action called')
-        self._set_app_status('Adding an article...')
-        title = self.title_edit.text()
+    def _add_article_action_open_and_push(self, title):
         path = self._open_file(title)
-        self._set_app_status(
-            'Synchronizing article with distributed systems...'
-        )
 
         self.worker_add = BackgroundWorker(
             job=lambda: self.client.add_article(title, path),
@@ -292,7 +294,38 @@ class GUI(QMainWindow):
         )
         self.worker_add.start()
 
+        self._set_app_status(
+            'Synchronizing article with distributed systems...'
+        )
+
         self._show_loading("Adding article to IPFS")
+
+    def _add_article_action(self):
+        LOG.debug('_add_article_action called')
+        self._set_app_status('Adding an article...')
+        title = self.title_edit.text()
+
+        if title == "":
+            self._client_action_failed("Article name must not be empty")
+            return
+
+        # Because of windows/linux filename restrictions
+        forbidden_chars = ['<', '>', ':', '"', '/', '\\', '|', '?', '*']
+        for char in forbidden_chars:
+            if char in title:
+                self._client_action_failed(
+                    "Article cannot consist of following chars: {}"
+                        .format("".join(forbidden_chars)))
+                return
+
+        self.worker_add = BackgroundWorker(
+            job=lambda: self.client.article_exists(title),
+            job_done=lambda result:
+                self._add_article_action_open_and_push(title) if result == 0
+                else self._client_action_failed("Article already exists"),
+            error=self._client_action_failed
+        )
+        self.worker_add.start()
 
     def _get_article_action_success(self, title):
         self.client.initialize_article_data(title)
