@@ -28,7 +28,8 @@ class IPFSClient:
                 time.sleep(1)
 
     # we remove 2 most significant bytes (they are always 1220)
-    # when reading from smart contract, this 2 bytes must be appended back to ipfs address
+    # when reading from smart contract, this 2 bytes must be appended
+    # back to ipfs address
     @staticmethod
     def _strip_ipfs_address(address):
         return base58.b58decode(address)[2:]
@@ -49,8 +50,10 @@ class IPFSClient:
         try:
             id = self._restore_ipfs_address(id)
 
-            # get function could potentially never complete (when resource is not hosted by anyone)
-            utils.run_with_timeout(self.process_pool, timeout, self.ipfs_api.get, id)
+            # get function could potentially never complete
+            # (when resource is not hosted by anyone)
+            utils.run_with_timeout(
+                self.process_pool, timeout, self.ipfs_api.get, id)
 
             return id
         except concurrent.futures.TimeoutError as e:
