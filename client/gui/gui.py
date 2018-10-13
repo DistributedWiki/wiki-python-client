@@ -20,6 +20,7 @@ import client.gui.gui_conf as gc
 import common.utils as utils
 from client.client import DWClient
 from client.client_conf import DEV_TOP_LEVEL_ADDRESS
+from client.gui.add_authorized import AddAuthorized
 from client.gui.background_worker import BackgroundWorker
 from client.login import Login
 
@@ -284,11 +285,21 @@ class GUI(QMainWindow):
             self.loading_box.close()
         self.loading_box = None
 
-    def _add_article_action_open_and_push(self, title):
+    def _add_article_action_select_authorized(self, title):
+        self.auth_window = AddAuthorized(
+            lambda auth, allow_author:
+                self._add_article_action_open_and_push(title, auth, allow_author))
+        self.auth_window.show()
+
+    def _add_article_action_open_and_push(self, title, authorized, allow_author):
+        print(title)
+        print(authorized)
+        print(allow_author)
         path = self._open_file(title)
 
         self.worker_add = BackgroundWorker(
-            job=lambda: self.client.add_article(title, path),
+            job=lambda:
+                self.client.add_article(title, path, authorized, allow_author),
             job_done=lambda result: self._close_loading(),
             error=self._client_action_failed
         )
@@ -321,7 +332,7 @@ class GUI(QMainWindow):
         self.worker_add = BackgroundWorker(
             job=lambda: self.client.article_exists(title),
             job_done=lambda result:
-                self._add_article_action_open_and_push(title) if result == 0
+                self._add_article_action_select_authorized(title) if result == 0
                 else self._client_action_failed("Article already exists"),
             error=self._client_action_failed
         )

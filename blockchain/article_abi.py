@@ -32,6 +32,25 @@ abi = """[
 		"inputs": [
 			{
 				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "authorized",
+		"outputs": [
+			{
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "",
 				"type": "uint256"
 			}
 		],
@@ -73,6 +92,14 @@ abi = """[
 			{
 				"name": "Id",
 				"type": "bytes32"
+			},
+			{
+				"name": "author",
+				"type": "address"
+			},
+			{
+				"name": "authorized_",
+				"type": "address[]"
 			}
 		],
 		"payable": false,

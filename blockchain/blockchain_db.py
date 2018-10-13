@@ -29,6 +29,10 @@ class BlockchainDB:
 
         self.tx_db = TransactionsDB('DistWiki_DB_PendingTransactions.db')
 
+    @staticmethod
+    def is_address_valid(address):
+        return Web3.isAddress(address)
+
     def article_exists(self, title):
         return int(self.top_level_contract \
                    .functions \
@@ -61,7 +65,7 @@ class BlockchainDB:
         self.process_pending_tx()
         return self.tx_db.get_tx_list(number)
 
-    def add_article_tx(self, title, ID):
+    def add_article_tx(self, title, ID, authorized):
         """
         :param title: string
         :param ID: bytes
@@ -77,7 +81,8 @@ class BlockchainDB:
 
         tx = self.top_level_contract.functions.createArticle(
             self._encode_title(title),
-            ID
+            ID,
+            authorized
         ).buildTransaction(tx_dict)
 
         signed_tx = self.account.signTransaction(tx)
@@ -141,6 +146,9 @@ class BlockchainDB:
             'address': address,
             'timestamp': timestamp
         }
+
+    def get_account_address(self):
+        return self.account.address
 
     def _get_tx_cost(self, tx_hash):
         receipt = self.w3.eth.getTransactionReceipt(tx_hash)
