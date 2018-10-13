@@ -1,29 +1,5 @@
 abi = """[
 	{
-		"constant": false,
-		"inputs": [
-			{
-				"name": "title",
-				"type": "bytes32"
-			},
-			{
-				"name": "ID",
-				"type": "bytes32"
-			}
-		],
-		"name": "createArticle",
-		"outputs": [],
-		"payable": false,
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"payable": false,
-		"stateMutability": "nonpayable",
-		"type": "constructor"
-	},
-	{
 		"constant": true,
 		"inputs": [
 			{
@@ -36,6 +12,47 @@ abi = """[
 			{
 				"name": "",
 				"type": "address"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": false,
+		"inputs": [
+			{
+				"name": "title",
+				"type": "bytes32"
+			},
+			{
+				"name": "ID",
+				"type": "bytes32"
+			},
+			{
+				"name": "authorized",
+				"type": "address[]"
+			}
+		],
+		"name": "createArticle",
+		"outputs": [],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "titlesList",
+		"outputs": [
+			{
+				"name": "",
+				"type": "bytes32"
 			}
 		],
 		"payable": false,
@@ -57,23 +74,10 @@ abi = """[
 		"type": "function"
 	},
 	{
-		"constant": true,
-		"inputs": [
-			{
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"name": "titlesList",
-		"outputs": [
-			{
-				"name": "",
-				"type": "bytes32"
-			}
-		],
+		"inputs": [],
 		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
+		"stateMutability": "nonpayable",
+		"type": "constructor"
 	}
 ]
 """
