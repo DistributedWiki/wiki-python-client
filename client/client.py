@@ -70,14 +70,16 @@ class DWClient:
         LOG.debug("Article updated to IPFS")
         LOG.debug("Updating article on smart contract")
 
-    def get_article(self, title, version_ipfs_address=None):
+    def get_article(self, title, version=-1):
         LOG.debug('Get article')
 
-        if version_ipfs_address is not None:
-            partial_ipfs_address = version_ipfs_address
+        if version != -1:
+            partial_ipfs_address = self.history[version]['ID']
         else:
             partial_ipfs_address = self.blockchain_db.get_article_ID(title)
         full_ipfs_address = self.ipfs.get_article(partial_ipfs_address, 20)
+
+        title = title + "_" + str(version)
 
         # Todo - this can be checked before downloading ???
         # Check if local file exists and is up-to-date
@@ -143,7 +145,7 @@ class DWClient:
             return None
         content = self.get_article(
             title=self.current_article_title,
-            version_ipfs_address=self.history[index]['ID']
+            version=index
         )
         if len(content) < 250:
             LOG.debug('content: %s', content)
