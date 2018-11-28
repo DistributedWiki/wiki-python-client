@@ -7,6 +7,6 @@ FHD_H = 1080
 LOGIN_WINDOW_WIDTH = 600
 LOGIN_WINDOW_HEIGHT = 100
 
-WINDOW_TITLE = 'Distributed Wikipedia Python Client'
+WINDOW_TITLE = 'Distributed Versioning System Python Client'
 
 NUMBER_OF_DISPLAYED_TRANSACTIONS = 5
