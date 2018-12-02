@@ -23,9 +23,7 @@ class Login(QtWidgets.QDialog):
         self.private_key.setEchoMode(QLineEdit.Password)
         self.private_key.move(self.private_key_label.size().width(), 0)
         self.private_key.resize(475, 23)
-        self.private_key.setText(
-            DEV_PRIVATE_KEY
-        )
+        self.private_key.setText(DEV_PRIVATE_KEY)
 
         self.provider_label = QLabel("Enter provider", self)
         self.provider_label.move(5, 30)
@@ -35,11 +33,24 @@ class Login(QtWidgets.QDialog):
         self.provider.move(self.provider_label.size().width(), 25)
         self.provider.setText(DEV_INFURA)
 
+        self.top_level_label = QLabel("Top level contract", self)
+        self.top_level_label.move(5, 55)
+
+        self.top_level = QtWidgets.QLineEdit(self)
+        self.top_level.resize(475, 23)
+        self.top_level.move(self.top_level_label.size().width(), 50)
+        self.top_level.setText(DEV_TOP_LEVEL_ADDRESS)
+
         self.buttonLogin = QtWidgets.QPushButton('Login', self)
         self.buttonLogin.clicked.connect(self.handle_login)
-        self.buttonLogin.move(300 - self.buttonLogin.size().width() / 2, 60)
+        self.buttonLogin.move(300 - self.buttonLogin.size().width() / 2, 85)
 
     def handle_login(self):
         self.callback(self.private_key.text(), self.provider.text(),
                       DEV_TOP_LEVEL_ADDRESS)
+        self.callback(
+            self.private_key.text(),
+            self.provider.text(),
+            self.top_level.text()
+        )
         self.accept()
