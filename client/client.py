@@ -38,14 +38,22 @@ class DWClient:
     def article_exists(self, title):
         return self.blockchain_db.article_exists(title)
 
-    def add_article(self, title, article_filepath):
+    def add_article(self, title, article_filepath, authorized, allow_author):
         LOG.debug('Adding article to IPFS')
 
         if self.blockchain_db.article_exists(title):
             raise Exception("Article exists")
 
+        if allow_author:
+            authorized.append(self.blockchain_db.get_account_address())
+
+        # Remove duplicates if any
+        authorized = list(set(authorized))
+        LOG.debug("Authorized accounts: ")
+        LOG.debug(authorized)
+
         ipfs_address = self.ipfs.add_article(article_filepath)
-        self.blockchain_db.add_article_tx(title, ipfs_address)
+        self.blockchain_db.add_article_tx(title, ipfs_address, authorized)
 
         LOG.debug("Article added to IPFS")
         LOG.debug("Adding article to smart contract")
@@ -62,14 +70,16 @@ class DWClient:
         LOG.debug("Article updated to IPFS")
         LOG.debug("Updating article on smart contract")
 
-    def get_article(self, title, version_ipfs_address=None):
+    def get_article(self, title, version=-1):
         LOG.debug('Get article')
 
-        if version_ipfs_address is not None:
-            partial_ipfs_address = version_ipfs_address
+        if version != -1:
+            partial_ipfs_address = self.history[version]['ID']
         else:
             partial_ipfs_address = self.blockchain_db.get_article_ID(title)
         full_ipfs_address = self.ipfs.get_article(partial_ipfs_address, 20)
+
+        title = title + "_" + str(version)
 
         # Todo - this can be checked before downloading ???
         # Check if local file exists and is up-to-date
@@ -135,7 +145,7 @@ class DWClient:
             return None
         content = self.get_article(
             title=self.current_article_title,
-            version_ipfs_address=self.history[index]['ID']
+            version=index
         )
         if len(content) < 250:
             LOG.debug('content: %s', content)
